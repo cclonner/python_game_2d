@@ -6,8 +6,11 @@ from tkinter import simpledialog
 
 IP = "127.0.0.1"
 PORT = 9090
-
-
+fra = "#36393E"
+dda = "#2F3136"
+chat = "#36393f"
+grey = '#99aab5'
+fon_chat = "#2f3136"
 class Client:
     def __init__(self, ip, port):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM,)
@@ -21,36 +24,38 @@ class Client:
         self.running = True
 
         gui_threat = Thread(target=self.gui_loop)
-        receive_threat = Thread(target=self.receive())
+        receive_threat = Thread(target=self.receive)
+
         gui_threat.start()
         receive_threat.start()
 
     def gui_loop(self):
         self.win = tkinter.Tk()
-        self.win.configure(bg="lightgray")
+        self.win.configure(bg=fra)
 
-        self.chat_label = tkinter.Label(self.win, text="ЧЯТ:", bg="lightgray")
-        self.chat_label.config(font=("Arial", 12))
+        self.chat_label = tkinter.Label(self.win, text="ЧЯТ:", bg=fra, fg='#99aab5')
+        self.chat_label.config(font=("Uni sans", 12))
         self.chat_label.pack(padx=20, pady=5)
 
         self.text_area = tkinter.scrolledtext.ScrolledText(self.win)
         self.text_area.pack(padx=20, pady=5)
         self.text_area.configure(state='disabled')
 
-        self.msg_label = tkinter.Label(self.win, text="ВЫСЕР:", bg="lightgray")
-        self.msg_label.config(font=("Arial", 12))
+        self.msg_label = tkinter.Label(self.win, text="ВЫСЕР:", bg=fra, fg='#99aab5')
+        self.msg_label.config(font=("Uni sans", 12))
         self.msg_label.pack(padx=20, pady=5)
 
-        self.input_area = tkinter.Text(self.win, height=3)
+        self.input_area = tkinter.Text(self.win, height=3, bg=fon_chat, fg=grey)
         self.input_area.pack(padx=20, pady=5)
 
-        self.send_button = tkinter.Button(self.win, text="ПУКНУТЬ", command=self.write)
-        self.send_button.config(font=("Arial", 12))
+        self.send_button = tkinter.Button(self.win, text="ПУКНУТЬ", command=self.write, bg="#7289BA", fg=fon_chat)
+        self.send_button.config(font=("Uni sans", 12))
         self.send_button.pack(padx=20, pady=5)
 
         self.gui_done = True
-        self.win.mainloop()
+
         self.win.protocol("WM_DELETE_WINDOW", self.stop)
+        self.win.mainloop()
 
     def write(self):
         message = f"{self.nickname}: {self.input_area.get('1.0', 'end')}"  # имя и сообщение с начала и до конца
