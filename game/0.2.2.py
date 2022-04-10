@@ -17,7 +17,7 @@ class Player(pygame.sprite.Sprite):
         wn.fill((0, 0, 0))
         wn.blit(rotated_image, new_rect.topleft)
 
-
+display_scroll = [0,0]
 player = Player()
 clock = pygame.time.Clock()  # Create the clock
 
@@ -26,16 +26,21 @@ while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
-
+    pygame.draw.rect(wn, (230, 50, 230), (100 - display_scroll[0], 100 - display_scroll[1], 16, 16))
     keys = pygame.key.get_pressed()  # Get al the pressed keys
     if keys[pygame.K_w]:
         player.rect.y -= 5
+        display_scroll[0] -= 5
     if keys[pygame.K_s]:
         player.rect.y += 5
+        display_scroll[0] += 5
     if keys[pygame.K_a]:
         player.rect.x -= 5
+        display_scroll[1] += 5
     if keys[pygame.K_d]:
         player.rect.x += 5
-
+        display_scroll[1] -= 5
+    #pygame.draw.rect(wn, (230, 50, 230), (100-display_scroll[0], 100-display_scroll[1], 16, 16))
+    #pygame.draw.rect(wn, (230, 50, 230), (100, 100, 16, 16))
     player.point_at(*pygame.mouse.get_pos())  # Put this here
     pygame.display.update()

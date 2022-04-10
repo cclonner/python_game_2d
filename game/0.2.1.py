@@ -21,8 +21,6 @@ class Player(pygame.sprite.Sprite):
         self.original_image = pygame.image.load('img/Player/Idle/0.png')
         self.image = self.original_image
         self.rect = self.image.get_rect(center=(x, y))
-        self.coordinate = (x, y)
-        print(self.coordinate)
         self.velocity = 5
         self.shoot_cooldown = 0
 
@@ -38,8 +36,11 @@ class Player(pygame.sprite.Sprite):
 
     def move(self, x, y):
         self.rect.move_ip(x * self.velocity, y * self.velocity)
+
     def shoot(self):
-        bullets.append(Bullet(self.coordinate))
+        bullet = Bullet(self.rect.centerx, self.rect.centery)
+        bullets.append(bullet)
+
 
 class Bullet:
     def __init__(self, x, y):
@@ -67,9 +68,6 @@ class Bullet:
         surf.blit(self.bullet, bullet_rect)
 
 
-
-
-
 pos = (250, 250)
 player = Player(20, 20)
 all_sprites = pygame.sprite.Group(player)
@@ -80,21 +78,21 @@ while run:
         if event.type == pygame.QUIT:
             run = False
         if event.type == pygame.MOUSEBUTTONDOWN:
-            bullets.append(Bullet(*pos))
+            player.shoot()
     for bullet in bullets[:]:
         bullet.update()
         if not wn.get_rect().collidepoint(bullet.pos):
             bullets.remove(bullet)
 
     player.point_at(*pygame.mouse.get_pos())
-    #print((pygame.mouse.get_pos()))
+    # print((pygame.mouse.get_pos()))
 
     keys = pygame.key.get_pressed()
     player.move(keys[pygame.K_d] - keys[pygame.K_a], keys[pygame.K_s] - keys[pygame.K_w])
 
     wn.fill(GRAY)
     pygame.draw.circle(wn, (0, 255, 0), pos, 10)
-    #for bullet in bullets:
+    # for bullet in bullets:
     for bullet in bullets:
         bullet.draw(wn)
     all_sprites.draw(wn)
