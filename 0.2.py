@@ -21,7 +21,7 @@ FPS = 100
 # Основные переменные
 GRAVITY = 0.75
 # GRAVITY = 0
-SCROLL_THRESH = 200
+SCROLL_THRESH = 500
 ROWS = 16
 COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
@@ -116,12 +116,12 @@ def reset_level():
 
 def draw_bg():
     screen.fill(BG)
-    width = sky_img.get_width()
+    """width = sky_img.get_width()
     for x in range(5):
         screen.blit(sky_img, ((x * width) - bg_scroll * 0.5, 0))
         screen.blit(mountain_img, ((x * width) - 1 * 0.6, SCREEN_HEIGHT - mountain_img.get_height() - 350))
         screen.blit(pine1_img, ((x * width) - 1 * 0.7, SCREEN_HEIGHT - pine1_img.get_height() - 180))
-        screen.blit(pine2_img, ((x * width) - 1 * 0.8, SCREEN_HEIGHT - pine2_img.get_height()))
+        screen.blit(pine2_img, ((x * width) - 1 * 0.8, SCREEN_HEIGHT - pine2_img.get_height()))"""
 
 
 class Soldier(pygame.sprite.Sprite):
@@ -177,6 +177,7 @@ class Soldier(pygame.sprite.Sprite):
 
     def move(self, moving_left, moving_right, moving_down, moving_up):
         # Сбрасываем переменные движения
+        screen_scroll = 0
         dx = 0
         dy = 0
 
@@ -237,9 +238,19 @@ class Soldier(pygame.sprite.Sprite):
         if self.char_type == 'player2':
             if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
                 dx = 0
+
         # Обновление положения прямоугольника
         self.rect.x += dx
         self.rect.y += dy
+
+        #скролинг экрана от позиции игрока
+        if self.char_type == "player":
+            if self.rect.right > SCREEN_WIDTH - SCROLL_THRESH or self.rect.left < SCROLL_THRESH:
+                self.rect.x -= dx
+                screen_scroll = -dx
+
+
+        return screen_scroll
 
     def shoot(self, size):
         if self.shoot_cooldown == 0 and self.ammo > 0:
@@ -293,6 +304,7 @@ class World():
         self.obstacle_list = []
 
     def process_data(self, data):
+        #узнаем длину data что бы ограничить прокрутку экрана до докнца карты\ значени data
         self.level_length = len(data[0])
         # проходимся по каждому значению в level data file
         for y, row in enumerate(data):
@@ -314,7 +326,7 @@ class World():
                     elif tile == 15:  # Создаем первого игрока
                         # char_type, x, y, scale, speed, jumpRange, ammo, grenades
                         player = Soldier('player', x * TILE_SIZE, y * TILE_SIZE, (TILE_SIZE // img.get_height() * 1.4),
-                                         7, (TILE_SIZE // img.get_height() * 6), 20, 10)
+                                         7, (TILE_SIZE // img.get_height() * 6), 200, 10)
                         health_bar = HealthBar(10, 10, player.health, player.health)
 
                     elif tile == 16:  # Создаем второго игрока
@@ -340,10 +352,9 @@ class World():
 
     def draw(self):
         for tile in self.obstacle_list:
-            # tile[1][0] += screen_scroll
+            tile[1][0] += screen_scroll
             screen.blit(tile[0], tile[1])
-            hitbox_group.update()
-            hitbox_group.draw(screen)
+
 
 
 class Decoration(pygame.sprite.Sprite):
@@ -353,6 +364,8 @@ class Decoration(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
+    def update(self):
+        self.rect.x += screen_scroll
 
 class Water(pygame.sprite.Sprite):
     def __init__(self, img, x, y):
@@ -361,6 +374,8 @@ class Water(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
+    def update(self):
+        self.rect.x += screen_scroll
 
 class Exit(pygame.sprite.Sprite):
     def __init__(self, img, x, y):
@@ -414,7 +429,7 @@ class ItemBox(pygame.sprite.Sprite):
                 print("гранты второго игрока +", self.ammo, "==", player2.grenades)
             # Удаление коробки
             self.kill()
-
+        self.rect.x += screen_scroll
 
 class HealthBar():
     def __init__(self, x, y, health, max_health):
@@ -439,9 +454,10 @@ class Bullet(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         mx, my = pygame.mouse.get_pos()
         self.direction = (mx - x, my - y)
+        #находим гипотинузу, что пы понять направление пули
         length = math.hypot(*self.direction)
         if length == 0.0:
-            self.direction = (0, -1)
+            self.direction = (0, 0)
         else:
             self.direction = (self.direction[0] / length, self.direction[1] / length)
         angle = math.degrees(math.atan2(-self.direction[1], self.direction[0]))
@@ -460,8 +476,9 @@ class Bullet(pygame.sprite.Sprite):
     def update(self):
         # Движение пули
         # self.rect.x += (self.direction * self.speed)
-        self.rect.center = ((self.rect.center[0] + self.direction[0] * self.speed) * self.direction_Solder,
-                            (self.rect.center[1] + self.direction[1] * self.speed) * self.direction_Solder)
+        self.rect.center = (self.rect.center[0] + self.direction[0] * self.speed + screen_scroll,
+                            self.rect.center[1] + self.direction[1] * self.speed + screen_scroll)
+        #print(self.direction_Solder)
         # Проверка, не ушла ли пуля за границы экрана
         if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
             self.kill()
@@ -489,7 +506,7 @@ class Grenade(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.timer = 100
         self.vel_y = -11
-        self.speed = 15
+        self.speed = 1
         self.damage = 10
         self.image = grenade_img
         self.rect = self.image.get_rect()
@@ -499,9 +516,10 @@ class Grenade(pygame.sprite.Sprite):
         self.height = self.image.get_height()
 
     def update(self):
-        self.vel_y += GRAVITY
+        #self.vel_y += GRAVITY
         dx = self.direction * self.speed
-        dy = self.vel_y
+        dy = self.direction * self.speed
+        #dy = self.vel_y
 
         # Проверка на препятсвие
         for tile in world.obstacle_list:
@@ -529,7 +547,7 @@ class Grenade(pygame.sprite.Sprite):
                     dy = tile[1].top - self.rect.bottom
 
         # Обновление позиции гранаты
-        self.rect.x += dx
+        self.rect.x += dx + screen_scroll
         self.rect.y += dy
 
         # Таймер гранаты
@@ -538,7 +556,7 @@ class Grenade(pygame.sprite.Sprite):
             self.kill()
             explosion = Explosion(self.rect.x, self.rect.y, 2)
             explosion_group.add(explosion)
-            # Нанести урон по определенной области
+            # Урон по определенной области
             if abs(self.rect.centerx - player.rect.centerx) < TILE_SIZE * (player.scale + 2) and \
                     abs(self.rect.centery - player.rect.centery) < TILE_SIZE * (player.scale + 2):
                 player.health -= 25 + self.damage + abs(self.rect.centerx - player.rect.centerx)
@@ -564,6 +582,8 @@ class Explosion(pygame.sprite.Sprite):
         self.counter = 0
 
     def update(self):
+        #скроллинг
+        self.rect.x += screen_scroll
         EXPLOSION_SPEED = 4
         # update explosion amimation
         self.counter += 1
@@ -705,7 +725,9 @@ while run:
                 player.update_action(1)  # 1: Бег
             else:
                 player.update_action(0)  # 0: Бездействие
-            player.move(moving_left, moving_right, moving_down, moving_up)
+            screen_scroll = player.move(moving_left, moving_right, moving_down, moving_up)
+
+
         else:
             if restart_button.draw(screen):
                 with open(f'level{level}_data.csv', newline='') as csvfile:
