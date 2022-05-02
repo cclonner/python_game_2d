@@ -26,9 +26,9 @@ ROWS = 16
 COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
 TILE_TYPES = 21
-#screen_scroll = [0, 0]
+screen_scroll = [0, 0]
 
-screen_scroll = 0
+
 bg_scroll = 0
 level = 0
 start_game = False
@@ -41,7 +41,6 @@ moving_down = False
 shoot = False
 grenade = False
 grenade_thrown = False
-
 
 # Загрузка изображений
 start_img = pygame.image.load('img/start_btn.png').convert_alpha()
@@ -173,9 +172,9 @@ class Soldier(pygame.sprite.Sprite):
 
     def move(self, moving_left, moving_right, moving_down, moving_up):
         # Сбрасываем переменные движения
-        #screen_scroll = [0, 0]
-        screen_scrolly = 0
-        screen_scroll = 0
+        screen_scroll = [0,0]
+
+
         dx = 0
         dy = 0
 
@@ -243,10 +242,14 @@ class Soldier(pygame.sprite.Sprite):
 
         # скролинг экрана от позиции игрока
         if self.char_type == "player":
-            if self.rect.right > SCREEN_WIDTH - SCROLL_THRESH or self.rect.left < SCROLL_THRESH:
+            if self.rect.right > SCREEN_WIDTH > - SCROLL_THRESH or self.rect.left < SCROLL_THRESH:
                 self.rect.x -= dx
-                screen_scroll = -dx
-
+                screen_scroll[0] = -dx
+                print(screen_scroll)
+            if self.rect.top < SCREEN_WIDTH or self.rect.bottom < SCREEN_HEIGHT:
+                self.rect.y -= dy
+                screen_scroll[1] = -dy
+                print(screen_scroll)
 
         return screen_scroll
 
@@ -330,7 +333,7 @@ class World():
                     elif tile == 16:  # Создаем второго игрока
                         # char_type, x, y, scale, speed, jumpRange, ammo, grenades
                         enemy = Soldier('enemy', x * TILE_SIZE, y * TILE_SIZE,
-                                          (TILE_SIZE // img.get_height() * 1.4), 7, 5, 20, 10)
+                                        (TILE_SIZE // img.get_height() * 1.4), 7, 5, 20, 10)
                         # health_bar1 = HealthBar((SCREEN_WIDTH - 350), 10, enemy.health, player2.health)
 
                     elif tile == 17:  # Создаем ammo box
@@ -350,9 +353,8 @@ class World():
 
     def draw(self):
         for tile in self.obstacle_list:
-            tile[1][0] += screen_scroll
-
-
+            tile[1][0] = screen_scroll[1]
+            tile[1][1] = screen_scroll[0]
             screen.blit(tile[0], tile[1])
 
 
@@ -364,8 +366,8 @@ class Decoration(pygame.sprite.Sprite):
         self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
     def update(self):
-        self.rect.x += screen_scroll
-
+        self.rect.x += screen_scroll[0]
+        self.rect.y += screen_scroll[1]
 
 
 class Water(pygame.sprite.Sprite):
@@ -376,8 +378,8 @@ class Water(pygame.sprite.Sprite):
         self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
     def update(self):
-        self.rect.x += screen_scroll
-
+        self.rect.x += screen_scroll[0]
+        self.rect.y += screen_scroll[1]
 
 
 class Exit(pygame.sprite.Sprite):
@@ -432,8 +434,8 @@ class ItemBox(pygame.sprite.Sprite):
                 print("гранты второго игрока +", self.ammo, "==", enemy.grenades)
             # Удаление коробки
             self.kill()
-        self.rect.x += screen_scroll
-
+        self.rect.x += screen_scroll[0]
+        self.rect.y += screen_scroll[1]
 
 
 class HealthBar():
@@ -568,7 +570,7 @@ class Grenade(pygame.sprite.Sprite):
                 print("здоровье игрока:", player.health - self.damage, "здоровье второго игрока:", enemy.health)
             if abs(self.rect.centerx - enemy.rect.centerx) < TILE_SIZE * (enemy.scale) and \
                     abs(self.rect.centery - enemy.rect.centery) < TILE_SIZE * (enemy.scale):
-                player2.health -= 25 + self.damage + abs(self.rect.centerx - enemy.rect.centerx)
+                enemy.health -= 25 + self.damage + abs(self.rect.centerx - enemy.rect.centerx)
                 print("здоровье игрока:", player.health, "здоровье второго игрока:", enemy.health - self.damage)
 
 
@@ -588,8 +590,8 @@ class Explosion(pygame.sprite.Sprite):
 
     def update(self):
         # скроллинг
-        self.rect.x += screen_scroll
-        self.rect.y += screen_scrolly
+        self.rect.x += screen_scroll[0]
+        self.rect.y += screen_scroll[1]
         EXPLOSION_SPEED = 4
         # update explosion amimation
         self.counter += 1
@@ -742,7 +744,7 @@ while run:
                         for y, tile in enumerate(row):
                             world_data[x][y] = int(tile)
                 world = World()
-                player, health_bar, enemy = world.process_data(world_data)
+                screen_scroll = player, health_bar, enemy = world.process_data(world_data)
                 ##player, health_bar, enemy, health_bar1 = world.process_data(world_data)
 
     for event in pygame.event.get():

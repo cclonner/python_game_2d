@@ -27,7 +27,7 @@ ROWS = 16
 COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
 TILE_TYPES = 21
-screen_scroll = [0, 0]
+screen_scroll = [0,0]
 
 bg_scroll = 0
 level = 0
@@ -140,13 +140,13 @@ class Soldier(pygame.sprite.Sprite):
     def update(self):
         self.update_animation()
         self.check_alive()
-        # update cooldown
+        # кулдаун
         if self.shoot_cooldown > 0:
             self.shoot_cooldown -= 1
 
     def move(self, moving_left, moving_right, moving_down, moving_up):
-        # reset movement variables
-        screen_scroll = [0, 0]
+        # сброс
+        screen_scroll = [0,0]
 
         dx = 0
         dy = 0
@@ -183,7 +183,7 @@ class Soldier(pygame.sprite.Sprite):
                 print(screen_scroll)
             if self.rect.top < SCREEN_WIDTH or self.rect.bottom < SCREEN_HEIGHT:
                 self.rect.y -= dy
-                screen_scroll[1] = -dx
+                screen_scroll[1] = -dy
                 print(screen_scroll)
 
         return screen_scroll
@@ -198,10 +198,6 @@ class Soldier(pygame.sprite.Sprite):
             self.ammo -= 1
 
     def ai(self):
-        """spwn = []
-        for i in range(15):
-            spwn.append(random.randint(-10, 100))
-            self.rect.x = random.randrange(len(spwn))"""
         if self.alive and player.alive:
             dx, dy = self.rect.x - player.rect.x, self.rect.y - player.rect.y
             dist = math.hypot(dx, dy)
@@ -210,8 +206,8 @@ class Soldier(pygame.sprite.Sprite):
             else:
                 dx, dy = dx / dist, (dy / dist) * -1
 
-            """self.rect.x -= (dx * self.speed) * 2
-            self.rect.y += (dy * self.speed) * 2"""
+            self.rect.x -= (dx * self.speed) * 2
+            self.rect.y += (dy * self.speed) * 2
             self.rect.x = 10
             self.rect.y = 10
 
@@ -411,9 +407,8 @@ class Explosion(pygame.sprite.Sprite):
                 self.kill()
             else:
                 self.image = self.images[self.frame_index]
-    def update(self):
         self.rect.x += screen_scroll[0]
-        self.rect.y -= screen_scroll[1]
+        self.rect.y += screen_scroll[1]
 
 
 class Water(pygame.sprite.Sprite):
@@ -479,16 +474,13 @@ decoration_group.add(decoration)
 
 player = Soldier('player', 200, 200, 1.65, 4, 20, 5)
 health_bar = HealthBar(10, 10, player.health, player.health)
+
 a = random.randrange(0, SCREEN_WIDTH)
 b = random.randrange(-150, -100)
 enemy = Soldier('enemy', a, b, 1.65, 1, 20, 0)
+enemy_group.add(enemy)
 enemies = []
 #
-# print(enemy_group)
-"""num = 0
-if len(enemy_group) > num:
-    time.sleep(5)
-    enemy_group.add(enemy)"""
 
 run = True
 while run:
@@ -521,11 +513,7 @@ while run:
 
         player.update()
         player.draw()
-        """for enemy in enemies:
-            enemies.append(enemy)
-            if len(enemies) == 5:
-                enemies.remove(enemy)
-                enemy_group.add(enemy)"""
+
         for enemy in enemy_group:
             enemy.ai()
             enemy.update()
