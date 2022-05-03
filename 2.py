@@ -21,7 +21,6 @@ clock = pygame.time.Clock()
 FPS = 100
 
 # Основные переменные
-GRAVITY = 0.75
 SCROLL_THRESH = 500
 ROWS = 50
 COLS = 50
@@ -322,7 +321,7 @@ class Soldier(pygame.sprite.Sprite):
             self.speed = 0
             self.alive = False
             self.update_action(3)
-            print(self.health)
+            #print(self.health)
 
 
 
@@ -337,6 +336,7 @@ class World():
     def process_data(self, data):
         # узнаем длину data что бы ограничить прокрутку экрана до докнца карты\ значени data
         self.level_length = [0, 0]
+        #длина оп оси х и у
         self.level_length[0] = len(data[0])
         self.level_length[1] = len(data[1])
 
@@ -515,14 +515,13 @@ class Bullet(pygame.sprite.Sprite):
             if player.alive:
                 # print("здоровье игрока:", player.health - self.damage)
                 player.health -= 0
-                # self.kill()
+                self.kill()
         # Проверка на попадание по enemy
         for enemy in enemy_group:
             if pygame.sprite.spritecollide(enemy, bullet_group, False):
                 if enemy.alive:
-                    # print("здоровье игрока:", player.health, "здоровье второго игрока:", enemy.health - self.damage)
                     enemy.health -= self.damage
-                    # enemy.kill()
+                    self.kill()
 
 
 class Grenade(pygame.sprite.Sprite):
@@ -711,6 +710,7 @@ while run:
                 print("1 волна")
                 waves()
                 print(enemy_group)
+
 
 
 
