@@ -1,0 +1,12 @@
+файлы img, 2.py, button.py, level2_data - акуальная версия игры
+https://github.com/cclonner/pythonProject
+02.py - старое название 2.py, там почти вся история работы
+
+0.2.(1-3, beta) различные версии, эксперименты
+
+часть истории на репозитории Глеба, в моей ветке
+https://github.com/Rarekin/pythonProject/tree/AiratSuperPro
+то же самое но в ветке Глеба
+https://github.com/Rarekin/pythonProject/tree/My_Branch/VaSu
+
+
