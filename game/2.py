@@ -1,3 +1,4 @@
+import time
 import pygame
 import os
 import csv
@@ -21,7 +22,7 @@ FPS = 100
 
 # Основные переменные
 GRAVITY = 0.75
-SCROLL_THRESH = 200
+SCROLL_THRESH = 500
 ROWS = 50
 COLS = 50
 TILE_SIZE = ROWS
@@ -94,9 +95,8 @@ def reset_level():
     decoration_group.empty()
     water_group.empty()
     exit_group.empty()
-    hitbox_group.empty()
 
-    # Создаем пустой список
+    # Создаем пустой список мира
     data = []
     for row in range(ROWS):
         r = [-1] * COLS
@@ -105,6 +105,23 @@ def reset_level():
 
     return data
 
+def waves():
+    num_wave = 1
+    enemies_x = [random.randint(0, 111) for _ in range(10 * num_wave)]
+    enemies_y = [random.randint(0, 111) for _ in range(10 * num_wave)]
+    #enemies.append(x )
+    print(enemies_x)
+    for x in enemies_x:
+        for y in enemies_y:
+            enemy = Soldier('enemy', x * TILE_SIZE, y * TILE_SIZE, 1.65, 1, 1, 4)
+            enemy_group.add(enemy)
+            print(enemies_x)
+            print(enemy_group)
+            for enemy in enemy_group:
+                enemy.ai()
+                enemy.update()
+                enemy.draw()
+    return enemy_group
 
 def draw_bg():
     screen.fill(DARK_GREEN)
@@ -113,6 +130,8 @@ def draw_bg():
 class Soldier(pygame.sprite.Sprite):
     def __init__(self, char_type, x, y, scale, speed, ammo, grenades):
         pygame.sprite.Sprite.__init__(self)
+        self.x = x
+        self.y = y
         self.alive = True
         self.char_type = char_type
         self.scale = scale
@@ -162,10 +181,16 @@ class Soldier(pygame.sprite.Sprite):
     def move(self, moving_left, moving_right, moving_down, moving_up):
         # Сбрасываем переменные движения
         screen_scroll = [0, 0]
-
         dx = 0
         dy = 0
 
+        """mx, my = pygame.mouse.get_pos()
+        if mx > dx:
+            self.flip = True
+            self.direction = -1
+        if my > dy:
+            self.flip = False
+            self.direction = 1"""
         # Движение влево или вправо
         if moving_left:
             dx = -self.speed
@@ -178,11 +203,11 @@ class Soldier(pygame.sprite.Sprite):
 
         if moving_down:
             dy = self.vel_y
-            self.vel_y = +10
+            self.vel_y = +5
 
         if moving_up:
             dy = self.vel_y
-            self.vel_y = -10
+            self.vel_y = -5
 
         # Проверка на препятсвия
         for tile in world.obstacle_list:
@@ -202,23 +227,22 @@ class Soldier(pygame.sprite.Sprite):
         if pygame.sprite.spritecollide(self, water_group, False):
             self.health = 0
 
-        # Проверка, не упал ли игрок с карты
+        """# Проверка, не упал ли игрок с карты
         if self.rect.bottom > SCREEN_HEIGHT:
-            self.health = 0
+            self.health = 0"""
 
         # Проверка, не выходит ли игрок за границы карты
-        if self.char_type == 'player':
+        """if self.char_type == 'player':
             if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
-                dx = 0
-        if self.char_type == 'enemy':
+                dx = 0"""
+        """if self.char_type == 'enemy':
             if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
-                dx = 0
+                dx = 0"""
 
         # Обновление положения прямоугольника
         self.rect.x += dx
         self.rect.y += dy
-
-        # скролинг экрана от позиции игрока
+        # скролинг экрана от позиции игрока КАМЕРА
         if self.char_type == "player":
             if (self.rect.right > SCREEN_WIDTH - SCROLL_THRESH and bg_scroll[0] < (
                     world.level_length[0] * TILE_SIZE) - SCREEN_WIDTH) \
@@ -226,19 +250,18 @@ class Soldier(pygame.sprite.Sprite):
                 self.rect.x -= dx
                 screen_scroll[0] = -dx
 
-            if (self.rect.top < SCREEN_HEIGHT - SCROLL_THRESH and bg_scroll[1] < (
+            if (self.rect.top < SCROLL_THRESH and bg_scroll[1] < (
                     world.level_length[1] * TILE_SIZE) - SCREEN_HEIGHT) \
-                    or (self.rect.bottom < SCROLL_THRESH and bg_scroll[1] > abs(dx)):
-                self.rect.y += dy
+                    or (self.rect.bottom < SCREEN_HEIGHT - SCROLL_THRESH and bg_scroll[1] > abs(dx)):
+                self.rect.y -= dy
                 screen_scroll[1] = -dy
-
         return screen_scroll
 
-    def shoot(self, size):
+    def shoot(self, size, char_type):
         if self.shoot_cooldown == 0 and self.ammo > 0:
             self.shoot_cooldown = 20
             bullet = Bullet(self.rect.centerx + (0.7 * self.rect.size[0] * self.direction), \
-                            self.rect.centery, size, self.direction)
+                            self.rect.centery, size, char_type)
             bullet_group.add(bullet)
             # Уменьшение патронов в магазине
             self.ammo -= 1
@@ -248,24 +271,20 @@ class Soldier(pygame.sprite.Sprite):
         if self.alive and player.alive:
             dx, dy = self.rect.x - player.rect.x, self.rect.y - player.rect.y
             dist = math.hypot(dx, dy)
+            if dist < 170:
+                self.update_action(0)  # 0: idle
+                self.shoot(2, "enemy")
             if dist == 0:
                 dist = 1
             else:
                 dx, dy = dx / dist, (dy / dist) * -1
-
-            self.rect.x -= dx * self.speed
-            self.rect.y += dy * self.speed
+            self.update_action(1)
+            self.rect.x -= (dx * self.speed) * 2
+            self.rect.y += (dy * self.speed) * 2
             if pygame.sprite.collide_rect(self, player):
                 player.health -= 0.1
             if pygame.sprite.spritecollide(self, water_group, False):
                 self.health = 0
-            for tile in world.obstacle_list:
-                # Проверка на препятсвие по X
-                if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
-                    dx = 0
-                # Проверка на препятсвие по Y
-                if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
-                    dy = 0
 
         self.rect.x += screen_scroll[0]
         self.rect.y += screen_scroll[1]
@@ -282,12 +301,15 @@ class Soldier(pygame.sprite.Sprite):
         # Если анимация заканчивается, то начинается заново
         if self.frame_index >= len(self.animation_list[self.action]):
             if self.action == 3:
+                start_ticks = pygame.time.get_ticks()
                 self.frame_index = len(self.animation_list[self.action]) - 1
+                if start_ticks >= 5000:
+                    self.kill()
             else:
                 self.frame_index = 0
 
     def update_action(self, new_action):
-        # Проверка если новое действие отличается от предидущего
+        # Проверка если новое действие отличается от предыдущего
         if new_action != self.action:
             self.action = new_action
             # Обновление настроек анимации
@@ -300,12 +322,12 @@ class Soldier(pygame.sprite.Sprite):
             self.speed = 0
             self.alive = False
             self.update_action(3)
+            print(self.health)
+
+
 
     def draw(self):
         screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
-
-
-# pygame.draw.rect(screen, RED, self.rect, 1)
 
 
 class World():
@@ -335,13 +357,12 @@ class World():
                     elif tile >= 11 and tile <= 14:
                         decoration = Decoration(img, x * TILE_SIZE, y * TILE_SIZE)
                         decoration_group.add(decoration)
-                    elif tile == 15:  # Создаем первого игрока
+                    elif tile == 15:  # Создаем игрока
                         player = Soldier('player', x * TILE_SIZE, y * TILE_SIZE, 1.65, 5, 200, 10)
                         health_bar = HealthBar(10, 10, player.health, player.health)
-
-                    elif tile == 16:  # Создаем второго игрока
+                    elif tile == 16:  # Создаем enemy
                         # char_type, x, y, scale, speed, ammo, grenades
-                        enemy = Soldier('enemy', x * TILE_SIZE, y * TILE_SIZE, 1.65, 1, 0, 4)
+                        enemy = Soldier('enemy', x * TILE_SIZE, y * TILE_SIZE, 1.65, 1, 1, 4)
                         enemy_group.add(enemy)
                     elif tile == 17:  # Создаем ammo box
                         item_box = ItemBox('Ammo', x * TILE_SIZE, y * TILE_SIZE)
@@ -418,15 +439,15 @@ class ItemBox(pygame.sprite.Sprite):
             # Проверка, какую коробку
             if self.item_type == 'Health':
                 player.health += 25
-                print("здоровье игрока +", self.healing, "==", player.health)
+                # print("здоровье игрока +", self.healing, "==", player.health)
                 if player.health > player.max_health:
                     player.health = player.max_health
             elif self.item_type == 'Ammo':
                 player.ammo += 15
-                print("патроны игрока +", self.ammo, "==", player.ammo)
+                # print("патроны игрока +", self.ammo, "==", player.ammo)
             elif self.item_type == 'Grenade':
                 player.grenades += 5
-                print("гранты игрока +", self.ammo, "==", player.grenades)
+                # print("гранты игрока +", self.ammo, "==", player.grenades)
             # Удаление коробки
             self.kill()
         self.rect.x += screen_scroll[0]
@@ -451,10 +472,12 @@ class HealthBar():
 
 
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y, scale, direction_s):
-        self.direction_Solder = direction_s
+    def __init__(self, x, y, scale, char):
         pygame.sprite.Sprite.__init__(self)
-        mx, my = pygame.mouse.get_pos()
+        if char == "player":
+            mx, my = pygame.mouse.get_pos()
+        else:
+            mx, my = enemy.rect.center
         self.direction = (mx - x, my - y)
         # находим гипотинузу, что пы понять направление пули
         length = math.hypot(*self.direction)
@@ -464,7 +487,7 @@ class Bullet(pygame.sprite.Sprite):
             self.direction = (self.direction[0] / length, self.direction[1] / length)
         angle = math.degrees(math.atan2(-self.direction[1], self.direction[0]))
         self.scale = scale
-        self.damage = 25
+        self.damage = 5
         self.speed = 20
         self.image = bullet_img
         self.image = pygame.transform.rotate(bullet_img, angle)
@@ -490,16 +513,16 @@ class Bullet(pygame.sprite.Sprite):
         # Проверка на попадание по игроку
         if pygame.sprite.spritecollide(player, bullet_group, False):
             if player.alive:
-                print("здоровье игрока:", player.health - self.damage, "здоровье второго игрока:", enemy.health)
-                # player.health -= self.damage
+                # print("здоровье игрока:", player.health - self.damage)
+                player.health -= 0
                 # self.kill()
         # Проверка на попадание по enemy
         for enemy in enemy_group:
             if pygame.sprite.spritecollide(enemy, bullet_group, False):
                 if enemy.alive:
-                    print("здоровье игрока:", player.health, "здоровье второго игрока:", enemy.health - self.damage)
+                    # print("здоровье игрока:", player.health, "здоровье второго игрока:", enemy.health - self.damage)
                     enemy.health -= self.damage
-                    self.kill()
+                    # enemy.kill()
 
 
 class Grenade(pygame.sprite.Sprite):
@@ -549,11 +572,12 @@ class Grenade(pygame.sprite.Sprite):
             if abs(self.rect.centerx - player.rect.centerx) < TILE_SIZE * (player.scale + 2) and \
                     abs(self.rect.centery - player.rect.centery) < TILE_SIZE * (player.scale + 2):
                 player.health -= 25 + self.damage + abs(self.rect.centerx - player.rect.centerx)
-                print("здоровье игрока:", player.health - self.damage, "здоровье второго игрока:", enemy.health)
-            if abs(self.rect.centerx - enemy.rect.centerx) < TILE_SIZE * (enemy.scale) and \
-                    abs(self.rect.centery - enemy.rect.centery) < TILE_SIZE * (enemy.scale):
-                enemy.health -= 25 + self.damage + abs(self.rect.centerx - enemy.rect.centerx)
-                print("здоровье игрока:", player.health, "здоровье второго игрока:", enemy.health - self.damage)
+            for enemy in enemy_group:
+                if pygame.sprite.spritecollide(enemy, explosion_group, False):
+                    if enemy.alive:
+                        if abs(self.rect.centerx - enemy.rect.centerx) < TILE_SIZE * (enemy.scale) and \
+                                abs(self.rect.centery - enemy.rect.centery) < TILE_SIZE * (enemy.scale):
+                            enemy.health -= 25 + self.damage + abs(self.rect.centerx - enemy.rect.centerx)
 
 
 class Explosion(pygame.sprite.Sprite):
@@ -657,7 +681,7 @@ while run:
         # Добавляем кнопки
         if start_button.draw(screen):
             start_game = True
-            start_intro = True
+            #start_intro = True
         if exit_button.draw(screen):
             run = False
     else:
@@ -676,22 +700,25 @@ while run:
         for x in range(player.grenades):
             screen.blit(grenade_img, (135 + (x * 15), 60))
 
-        player.update()
-        player.draw()
+        decoration_group.update()
+        decoration_group.draw(screen)
 
         for enemy in enemy_group:
             enemy.ai()
             enemy.update()
             enemy.draw()
+            if len(enemy_group) == 0:
+                print("1 волна")
+                waves()
+                print(enemy_group)
 
+
+
+
+        #print(enemy_group)
+        player.update()
+        player.draw()
         # Обновляем и рисуем группы(group)
-
-        bullet_group.update()
-        bullet_group.draw(screen)
-
-        # Хитбоксы за задним фоном
-        hitbox_group.update()
-        hitbox_group.draw(screen)
 
         explosion_group.update()
         explosion_group.draw(screen)
@@ -702,11 +729,11 @@ while run:
         item_box_group.update()
         item_box_group.draw(screen)
 
-        decoration_group.update()
-        decoration_group.draw(screen)
-
         water_group.update()
         water_group.draw(screen)
+
+        bullet_group.update()
+        bullet_group.draw(screen)
 
         exit_group.update()
         exit_group.draw(screen)
@@ -721,7 +748,7 @@ while run:
         if player.alive:
             # Проверка на стрельбу игрока
             if shoot:
-                player.shoot(1)
+                player.shoot(1, "player")
                 print("кол-во патронов игрока:", player.ammo, "кол-во гранат игока: ", player.grenades)
             # Проверка на бросок гранаты игрока
             elif grenade and grenade_thrown == False and player.grenades > 0:
@@ -748,13 +775,14 @@ while run:
                     death_fade.fade_counter = 0
                     start_intro = True
                     bg_scroll = [0, 0]
+                    world_data = reset_level()
                     with open(f'level{level}_data.csv', newline='') as csvfile:
                         reader = csv.reader(csvfile, delimiter=',')
                         for x, row in enumerate(reader):
                             for y, tile in enumerate(row):
                                 world_data[x][y] = int(tile)
                     world = World()
-                    screen_scroll = player, health_bar = world.process_data(world_data)
+                    player, health_bar = world.process_data(world_data)
 
     for event in pygame.event.get():
         # Выход из игры
