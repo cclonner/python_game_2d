@@ -38,6 +38,7 @@ moving_right = False
 moving_up = False
 moving_down = False
 shoot = False
+shoot_ai = False
 grenade = False
 grenade_thrown = False
 
@@ -72,7 +73,7 @@ WHITE = (255, 255, 255)
 GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
 PINK = (235, 65, 54)
-DARK_GREEN = (85, 107, 47)
+DARK_GREEN = (199, 174, 81)
 BLUE = (0, 0, 255)
 
 # Шрифт
@@ -104,18 +105,37 @@ def reset_level():
 
     return data
 
-def waves():
-    num_wave = 1
-    enemies_x = [random.randint(0, 111) for _ in range(10 * num_wave)]
-    enemies_y = [random.randint(0, 111) for _ in range(10 * num_wave)]
-    #enemies.append(x )
-    print(enemies_x)
+def waves(n):
+    num_wave = n
+    enemies_x = [random.randint(player.rect.x - SCREEN_WIDTH, player.rect.x - (SCREEN_WIDTH // 2)) for _ in
+                 range(4 * num_wave)]
+    enemies_y = [random.randint(player.rect.y - SCREEN_HEIGHT, player.rect.y + SCREEN_HEIGHT) for _ in
+                 range(8 * num_wave)]
+    enemies_x2 = [random.randint(player.rect.x + (SCREEN_WIDTH // 2), player.rect.x + SCREEN_WIDTH, ) for _ in
+                  range(4 * num_wave)]
+    """enemies_y2 = [random.randint(player.rect.x - SCREEN_WIDTH, player.rect.x + SCREEN_WIDTH) for _ in
+                  range(4 * num_wave)]"""
+    for i in enemies_x2:
+        enemies_x.append(i)
+    """for i in enemies_y2:
+        enemies_x.append(i)"""
     for x in enemies_x:
         for y in enemies_y:
-            enemy = Soldier('enemy', x * TILE_SIZE, y * TILE_SIZE, 1.65, 1, 1, 4)
+            enemy = Soldier('enemy', x, y, 1.65, 1, 1, 4)
+            if random.randint(0, 100) == 1:
+                item_box = ItemBox('Ammo', enemy.rect.centerx, enemy.rect.centery)
+                item_box_group.add(item_box)
+            if random.randint(0, 100) == 3:
+                item_box = ItemBox('Health', enemy.rect.centerx, enemy.rect.centery)
+                item_box_group.add(item_box)
+            if random.randint(0, 100) == 2:
+                item_box = ItemBox('Grenade', enemy.rect.centerx, enemy.rect.centery)
+                item_box_group.add(item_box)
             enemy_group.add(enemy)
-            print(enemies_x)
-            print(enemy_group)
+            print(
+                "x - ", enemies_x,
+                "y - ", enemies_y
+            )
             for enemy in enemy_group:
                 enemy.ai()
                 enemy.update()
@@ -143,7 +163,6 @@ class Soldier(pygame.sprite.Sprite):
         self.max_health = self.health
         self.direction = 1
         self.vel_y = 0
-        self.in_air = True
         self.flip = False
         self.animation_list = []
         self.frame_index = 0
@@ -182,14 +201,7 @@ class Soldier(pygame.sprite.Sprite):
         screen_scroll = [0, 0]
         dx = 0
         dy = 0
-
-        """mx, my = pygame.mouse.get_pos()
-        if mx > dx:
-            self.flip = True
-            self.direction = -1
-        if my > dy:
-            self.flip = False
-            self.direction = 1"""
+        #print(mx, my)
         # Движение влево или вправо
         if moving_left:
             dx = -self.speed
@@ -258,7 +270,7 @@ class Soldier(pygame.sprite.Sprite):
 
     def shoot(self, size, char_type):
         if self.shoot_cooldown == 0 and self.ammo > 0:
-            self.shoot_cooldown = 20
+            self.shoot_cooldown = 2
             bullet = Bullet(self.rect.centerx + (0.7 * self.rect.size[0] * self.direction), \
                             self.rect.centery, size, char_type)
             bullet_group.add(bullet)
@@ -270,9 +282,6 @@ class Soldier(pygame.sprite.Sprite):
         if self.alive and player.alive:
             dx, dy = self.rect.x - player.rect.x, self.rect.y - player.rect.y
             dist = math.hypot(dx, dy)
-            if dist < 170:
-                self.update_action(0)  # 0: idle
-                self.shoot(2, "enemy")
             if dist == 0:
                 dist = 1
             else:
@@ -282,8 +291,19 @@ class Soldier(pygame.sprite.Sprite):
             self.rect.y += (dy * self.speed) * 2
             if pygame.sprite.collide_rect(self, player):
                 player.health -= 0.1
-            if pygame.sprite.spritecollide(self, water_group, False):
-                self.health = 0
+        if self.alive == False:
+            ch = random.randint(0, 100)
+            if ch == 1:
+                item_box = ItemBox('Ammo', self.rect.centerx, self.rect.centery)
+                item_box_group.add(item_box)
+            if ch == 3:
+                item_box = ItemBox('Health', self.rect.centerx, self.rect.centery)
+                item_box_group.add(item_box)
+            if ch == 2:
+                item_box = ItemBox('Grenade', self.rect.centerx, self.rect.centery)
+                item_box_group.add(item_box)
+            """if pygame.sprite.spritecollide(self, water_group, False):
+                self.health = 0"""
 
         self.rect.x += screen_scroll[0]
         self.rect.y += screen_scroll[1]
@@ -321,9 +341,7 @@ class Soldier(pygame.sprite.Sprite):
             self.speed = 0
             self.alive = False
             self.update_action(3)
-            #print(self.health)
-
-
+            # print(self.health)
 
     def draw(self):
         screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
@@ -336,7 +354,7 @@ class World():
     def process_data(self, data):
         # узнаем длину data что бы ограничить прокрутку экрана до докнца карты\ значени data
         self.level_length = [0, 0]
-        #длина оп оси х и у
+        # длина оп оси х и у
         self.level_length[0] = len(data[0])
         self.level_length[1] = len(data[1])
 
@@ -427,8 +445,8 @@ class ItemBox(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.item_type = item_type
         self.healing = 25
-        self.ammo = 15
-        self.grenade = 5
+        self.ammo = 50
+        self.grenade = 10
         self.image = item_boxes[self.item_type]
         self.rect = self.image.get_rect()
         self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
@@ -474,10 +492,11 @@ class HealthBar():
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, scale, char):
         pygame.sprite.Sprite.__init__(self)
-        if char == "player":
+        self.char = char
+        if self.char == "player":
             mx, my = pygame.mouse.get_pos()
-        else:
-            mx, my = enemy.rect.center
+        if self.char == "enemy":
+            mx, my = player.rect.center
         self.direction = (mx - x, my - y)
         # находим гипотинузу, что пы понять направление пули
         length = math.hypot(*self.direction)
@@ -487,7 +506,7 @@ class Bullet(pygame.sprite.Sprite):
             self.direction = (self.direction[0] / length, self.direction[1] / length)
         angle = math.degrees(math.atan2(-self.direction[1], self.direction[0]))
         self.scale = scale
-        self.damage = 5
+        self.damage = 20
         self.speed = 20
         self.image = bullet_img
         self.image = pygame.transform.rotate(bullet_img, angle)
@@ -515,7 +534,7 @@ class Bullet(pygame.sprite.Sprite):
             if player.alive:
                 # print("здоровье игрока:", player.health - self.damage)
                 player.health -= 0
-                self.kill()
+                # self.kill()
         # Проверка на попадание по enemy
         for enemy in enemy_group:
             if pygame.sprite.spritecollide(enemy, bullet_group, False):
@@ -525,35 +544,34 @@ class Bullet(pygame.sprite.Sprite):
 
 
 class Grenade(pygame.sprite.Sprite):
-    def __init__(self, x, y, scale, direction_s):
-        self.direction_Solder = direction_s
+    def __init__(self, x, y, scale):
         pygame.sprite.Sprite.__init__(self)
         mx, my = pygame.mouse.get_pos()
         self.direction = (mx - x, my - y)
-        # находим гипотинузу, что пы понять направление гранатф
+        # находим гипотинузу, что пы понять направление пули
         length = math.hypot(*self.direction)
         if length == 0.0:
             self.direction = (0, 0)
         else:
             self.direction = (self.direction[0] / length, self.direction[1] / length)
         angle = math.degrees(math.atan2(-self.direction[1], self.direction[0]))
-        self.timer = 100
         self.scale = scale
-        self.speed = 1
-        self.damage = 10
+        self.damage = 50
+        self.speed = 2
+        self.timer = 100
+        self.image = grenade_img
         self.image = pygame.transform.rotate(grenade_img, angle)
         self.image = pygame.transform.scale(grenade_img, \
                                             (int(grenade_img.get_width() * self.scale), \
                                              int(grenade_img.get_height() * self.scale)))
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
+        # -----------------------------------------
 
     def update(self):
+        # Движение пули
         self.rect.center = ((self.rect.center[0] + self.direction[0] * self.speed) + screen_scroll[0],
                             (self.rect.center[1] + self.direction[1] * self.speed) + screen_scroll[1])
-        # Проверка, не ушла ли пуля за границы экрана
-        if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
-            self.kill()
         # Проверка на препятсвие
         for tile in world.obstacle_list:
             if tile[1].colliderect(self.rect):
@@ -568,15 +586,13 @@ class Grenade(pygame.sprite.Sprite):
             explosion = Explosion(self.rect.x, self.rect.y, 2)
             explosion_group.add(explosion)
             # Урон по определенной области
-            if abs(self.rect.centerx - player.rect.centerx) < TILE_SIZE * (player.scale + 2) and \
-                    abs(self.rect.centery - player.rect.centery) < TILE_SIZE * (player.scale + 2):
-                player.health -= 25 + self.damage + abs(self.rect.centerx - player.rect.centerx)
+            if abs(self.rect.centerx - player.rect.centerx) < TILE_SIZE * 2 and \
+                    abs(self.rect.centery - player.rect.centery) < TILE_SIZE * 2:
+                player.health -= 50
             for enemy in enemy_group:
-                if pygame.sprite.spritecollide(enemy, explosion_group, False):
-                    if enemy.alive:
-                        if abs(self.rect.centerx - enemy.rect.centerx) < TILE_SIZE * (enemy.scale) and \
-                                abs(self.rect.centery - enemy.rect.centery) < TILE_SIZE * (enemy.scale):
-                            enemy.health -= 25 + self.damage + abs(self.rect.centerx - enemy.rect.centerx)
+                if abs(self.rect.centerx - enemy.rect.centerx) < TILE_SIZE * 2 and \
+                        abs(self.rect.centery - enemy.rect.centery) < TILE_SIZE * 2:
+                    enemy.health -= 50
 
 
 class Explosion(pygame.sprite.Sprite):
@@ -680,7 +696,7 @@ while run:
         # Добавляем кнопки
         if start_button.draw(screen):
             start_game = True
-            #start_intro = True
+            # start_intro = True
         if exit_button.draw(screen):
             run = False
     else:
@@ -699,6 +715,10 @@ while run:
         for x in range(player.grenades):
             screen.blit(grenade_img, (135 + (x * 15), 60))
 
+        # Обновляем и рисуем группы(...group)
+        water_group.update()
+        water_group.draw(screen)
+
         decoration_group.update()
         decoration_group.draw(screen)
 
@@ -707,18 +727,16 @@ while run:
             enemy.update()
             enemy.draw()
             if len(enemy_group) == 0:
+                n = 0
+                n += 1
                 print("1 волна")
-                waves()
+                waves(n)
                 print(enemy_group)
 
-
-
-
-
-        #print(enemy_group)
+        # print(enemy_group)
         player.update()
         player.draw()
-        # Обновляем и рисуем группы(group)
+
 
         explosion_group.update()
         explosion_group.draw(screen)
@@ -728,9 +746,6 @@ while run:
 
         item_box_group.update()
         item_box_group.draw(screen)
-
-        water_group.update()
-        water_group.draw(screen)
 
         bullet_group.update()
         bullet_group.draw(screen)
@@ -752,8 +767,8 @@ while run:
                 print("кол-во патронов игрока:", player.ammo, "кол-во гранат игока: ", player.grenades)
             # Проверка на бросок гранаты игрока
             elif grenade and grenade_thrown == False and player.grenades > 0:
-                grenade = Grenade(player.rect.centerx + (0.5 * player.rect.size[0] * player.direction), \
-                                  player.rect.top, 2, player.direction)
+                grenade = Grenade(player.rect.centerx + (0.7 * player.rect.size[0]),\
+							player.rect.centery, 2)
                 grenade_group.add(grenade)
                 # Уменьшение запаса гранат игрока
                 player.grenades -= 1
