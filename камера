@@ -1,0 +1,11 @@
+            if (self.rect.right > SCREEN_WIDTH - SCROLL_THRESH and bg_scroll[0] < (
+                    world.level_length[0] * TILE_SIZE) - SCREEN_WIDTH) \
+                    or (self.rect.left < SCROLL_THRESH and bg_scroll[0] > abs(dx)):
+                self.rect.x -= dx
+                screen_scroll[0] = -dx
+
+            if (self.rect.top < SCREEN_WIDTH and bg_scroll[1] < (
+                    world.level_length[1] * TILE_SIZE) - SCREEN_WIDTH) \
+                    or (self.rect.bottom < SCROLL_THRESH and bg_scroll[1] > abs(dx)):
+                self.rect.y -= dy
+                screen_scroll[1] = -dy
