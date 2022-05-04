@@ -271,11 +271,12 @@ class Soldier(pygame.sprite.Sprite):
                 self.rect.x -= dx
                 screen_scroll[0] = -dx
 
-            if (self.rect.top < SCROLL_THRESH and bg_scroll[1] < (
+            if (self.rect.top > SCROLL_THRESH and bg_scroll[1] < (
                     world.level_length[1] * TILE_SIZE) - SCREEN_HEIGHT) \
                     or (self.rect.bottom < SCREEN_HEIGHT - SCROLL_THRESH and bg_scroll[1] > abs(dx)):
                 self.rect.y -= dy
                 screen_scroll[1] = -dy
+
         return screen_scroll
 
     def shoot(self, size, char_type):
