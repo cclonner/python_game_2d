@@ -29,6 +29,8 @@ TILE_TYPES = 21
 screen_scroll = [0, 0]
 pygame.time.set_timer(pygame.USEREVENT, 1000)
 counter = 1
+counter_life = 0
+
 
 bg_scroll = [0, 0]
 level = 2
@@ -732,8 +734,7 @@ while run:
             enemy.draw()
             if len(enemy_group) <= 10:
                 waves()
-                print(enemy_group)
-                draw_text(f"ВОЛНА{len(enemy_group)}", font, WHITE, SCREEN_WIDTH // 2, 35)
+                draw_text(f"СЧЕТ{counter_life}", font, WHITE, SCREEN_WIDTH - 20, 35)
 
         player.update()
         player.draw()
@@ -806,6 +807,7 @@ while run:
         # Нажатие клавиш игрока
         if event.type == pygame.USEREVENT:
             counter -= 1
+            counter_life += 1
             # функция для создания одиночного врга через каждые 10 секунд
             if counter == 0:
                 solo()
