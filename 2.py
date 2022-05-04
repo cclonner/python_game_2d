@@ -27,9 +27,11 @@ COLS = 50
 TILE_SIZE = ROWS
 TILE_TYPES = 21
 screen_scroll = [0, 0]
+pygame.time.set_timer(pygame.USEREVENT + 2, 1)
 pygame.time.set_timer(pygame.USEREVENT, 1000)
 counter = 1
-counter_life = 0
+counter_life = 10
+
 
 
 bg_scroll = [0, 0]
@@ -82,6 +84,7 @@ BLUE = (0, 0, 255)
 
 # Шрифт
 font = pygame.font.SysFont('Futura', 30)
+
 
 
 def draw_text(text, font, text_col, x, y):
@@ -708,6 +711,7 @@ while run:
         if exit_button.draw(screen):
             run = False
     else:
+
         # Обновляем задний фон
         draw_bg()
         # Рисуем мир
@@ -721,11 +725,11 @@ while run:
         # Рисуем здоровье игрока
         health_bar.draw(player.health)
         # Рисуем запас патронов игрока
-        draw_text('AMMO: ', font, WHITE, 10, 35)
+        draw_text('ПУЛИ: ', font, WHITE, 10, 35)
         for x in range(player.ammo):
             screen.blit(bullet_img, (90 + (x * 10), 40))
         # Рисуем запас гранат игрока
-        draw_text('GRENADES: ', font, WHITE, 10, 60)
+        draw_text('ГРАНАТЫ: ', font, WHITE, 10, 60)
         for x in range(player.grenades):
             screen.blit(grenade_img, (135 + (x * 15), 60))
         for enemy in enemy_group:
@@ -734,7 +738,6 @@ while run:
             enemy.draw()
             if len(enemy_group) <= 10:
                 waves()
-                draw_text(f"СЧЕТ{counter_life}", font, WHITE, SCREEN_WIDTH - 20, 35)
 
         player.update()
         player.draw()
@@ -805,9 +808,12 @@ while run:
         if event.type == pygame.QUIT:
             run = False
         # Нажатие клавиш игрока
+        if event.type == pygame.USEREVENT + 2:
+            counter_life +=1
+            if counter_life > 1 and start_game:
+                draw_text(f"СЧЕТ - {counter_life // 1000}", font, WHITE, 10, 85)
         if event.type == pygame.USEREVENT:
             counter -= 1
-            counter_life += 1
             # функция для создания одиночного врга через каждые 10 секунд
             if counter == 0:
                 solo()
@@ -847,7 +853,6 @@ while run:
             if event.key == pygame.K_q:
                 grenade = False
                 grenade_thrown = False
-
     pygame.display.update()
 
 pygame.quit()
