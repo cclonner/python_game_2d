@@ -27,6 +27,8 @@ COLS = 50
 TILE_SIZE = ROWS
 TILE_TYPES = 21
 screen_scroll = [0, 0]
+pygame.time.set_timer(pygame.USEREVENT, 1000)
+counter = 1
 
 bg_scroll = [0, 0]
 level = 2
@@ -105,42 +107,63 @@ def reset_level():
 
     return data
 
-def waves(n):
-    num_wave = n
-    enemies_x = [random.randint(player.rect.x - SCREEN_WIDTH, player.rect.x - (SCREEN_WIDTH // 2)) for _ in
-                 range(4 * num_wave)]
-    enemies_y = [random.randint(player.rect.y - SCREEN_HEIGHT, player.rect.y + SCREEN_HEIGHT) for _ in
-                 range(8 * num_wave)]
-    enemies_x2 = [random.randint(player.rect.x + (SCREEN_WIDTH // 2), player.rect.x + SCREEN_WIDTH, ) for _ in
-                  range(4 * num_wave)]
-    """enemies_y2 = [random.randint(player.rect.x - SCREEN_WIDTH, player.rect.x + SCREEN_WIDTH) for _ in
-                  range(4 * num_wave)]"""
-    for i in enemies_x2:
-        enemies_x.append(i)
-    """for i in enemies_y2:
-        enemies_x.append(i)"""
-    for x in enemies_x:
-        for y in enemies_y:
-            enemy = Soldier('enemy', x, y, 1.65, 1, 1, 4)
-            if random.randint(0, 100) == 1:
-                item_box = ItemBox('Ammo', enemy.rect.centerx, enemy.rect.centery)
-                item_box_group.add(item_box)
-            if random.randint(0, 100) == 3:
-                item_box = ItemBox('Health', enemy.rect.centerx, enemy.rect.centery)
-                item_box_group.add(item_box)
-            if random.randint(0, 100) == 2:
-                item_box = ItemBox('Grenade', enemy.rect.centerx, enemy.rect.centery)
-                item_box_group.add(item_box)
-            enemy_group.add(enemy)
-            print(
-                "x - ", enemies_x,
-                "y - ", enemies_y
-            )
-            for enemy in enemy_group:
-                enemy.ai()
-                enemy.update()
-                enemy.draw()
+
+def solo():
+    direct = random.randint(1, 2)
+    if direct == 2:
+        direct = -1
+        x, y = random.randint(player.rect.x + (SCREEN_WIDTH * direct),
+                              player.rect.x + (SCREEN_WIDTH // 2) * direct), random.randint(
+            player.rect.y - SCREEN_HEIGHT,
+            player.rect.y + SCREEN_HEIGHT)
+    else:
+        x, y = random.randint(player.rect.x + (SCREEN_WIDTH // 2), player.rect.x + (SCREEN_WIDTH)), random.randint(
+            player.rect.y - SCREEN_HEIGHT, player.rect.y + SCREEN_HEIGHT)
+
+
+    print(direct)
+
+    enemy = Soldier('enemy', x, y, 1.65, 1, 1, 4)
+    enemy_group.add(enemy)
+    enemy.ai()
+    enemy.update()
+    enemy.draw()
+    print("solo")
+
+
+def waves():
+    num_wave = 1
+    enemies_x = []
+    enemies_y = []
+    for i in range(5):
+        enemies_x1 = [random.randint(player.rect.x - SCREEN_WIDTH, player.rect.x - (SCREEN_WIDTH // 2)) for _ in
+                      range(4 * num_wave)]
+        enemies_y1 = [random.randint(player.rect.y - SCREEN_HEIGHT, player.rect.y + SCREEN_HEIGHT) for _ in
+                      range(8 * num_wave)]
+        enemies_x2 = [random.randint(player.rect.x + (SCREEN_WIDTH // 2), player.rect.x + SCREEN_WIDTH, ) for _ in
+                      range(4 * num_wave)]
+        for i in enemies_x1:
+            enemies_x.append(i)
+        for i in enemies_y1:
+            enemies_y.append(i)
+        for i in enemies_x2:
+            enemies_x.append(i)
+        i = 0
+        j = 0
+    while i < len(enemies_x):
+        x = enemies_x[i]
+        y = enemies_y[j]
+
+        enemy = Soldier('enemy', x, y, 1.65, 1, 1, 4)
+        enemy_group.add(enemy)
+        for enemy in enemy_group:
+            enemy.ai()
+            enemy.update()
+            enemy.draw()
+        i += 1
+        j += 1
     return enemy_group
+
 
 def draw_bg():
     screen.fill(DARK_GREEN)
@@ -201,7 +224,6 @@ class Soldier(pygame.sprite.Sprite):
         screen_scroll = [0, 0]
         dx = 0
         dy = 0
-        #print(mx, my)
         # Движение влево или вправо
         if moving_left:
             dx = -self.speed
@@ -237,18 +259,6 @@ class Soldier(pygame.sprite.Sprite):
         # Проверка на соприкосновение с водой
         if pygame.sprite.spritecollide(self, water_group, False):
             self.health = 0
-
-        """# Проверка, не упал ли игрок с карты
-        if self.rect.bottom > SCREEN_HEIGHT:
-            self.health = 0"""
-
-        # Проверка, не выходит ли игрок за границы карты
-        """if self.char_type == 'player':
-            if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
-                dx = 0"""
-        """if self.char_type == 'enemy':
-            if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
-                dx = 0"""
 
         # Обновление положения прямоугольника
         self.rect.x += dx
@@ -290,20 +300,21 @@ class Soldier(pygame.sprite.Sprite):
             self.rect.x -= (dx * self.speed) * 2
             self.rect.y += (dy * self.speed) * 2
             if pygame.sprite.collide_rect(self, player):
-                player.health -= 0.1
+                player.health -= 0.2
         if self.alive == False:
             ch = random.randint(0, 100)
             if ch == 1:
                 item_box = ItemBox('Ammo', self.rect.centerx, self.rect.centery)
                 item_box_group.add(item_box)
+                ch = 0
             if ch == 3:
                 item_box = ItemBox('Health', self.rect.centerx, self.rect.centery)
                 item_box_group.add(item_box)
+                ch = 0
             if ch == 2:
                 item_box = ItemBox('Grenade', self.rect.centerx, self.rect.centery)
                 item_box_group.add(item_box)
-            """if pygame.sprite.spritecollide(self, water_group, False):
-                self.health = 0"""
+                ch = 0
 
         self.rect.x += screen_scroll[0]
         self.rect.y += screen_scroll[1]
@@ -341,7 +352,6 @@ class Soldier(pygame.sprite.Sprite):
             self.speed = 0
             self.alive = False
             self.update_action(3)
-            # print(self.health)
 
     def draw(self):
         screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
@@ -457,15 +467,12 @@ class ItemBox(pygame.sprite.Sprite):
             # Проверка, какую коробку
             if self.item_type == 'Health':
                 player.health += 25
-                # print("здоровье игрока +", self.healing, "==", player.health)
                 if player.health > player.max_health:
                     player.health = player.max_health
             elif self.item_type == 'Ammo':
-                player.ammo += 15
-                # print("патроны игрока +", self.ammo, "==", player.ammo)
+                player.ammo += 20
             elif self.item_type == 'Grenade':
-                player.grenades += 5
-                # print("гранты игрока +", self.ammo, "==", player.grenades)
+                player.grenades += 1
             # Удаление коробки
             self.kill()
         self.rect.x += screen_scroll[0]
@@ -532,9 +539,7 @@ class Bullet(pygame.sprite.Sprite):
         # Проверка на попадание по игроку
         if pygame.sprite.spritecollide(player, bullet_group, False):
             if player.alive:
-                # print("здоровье игрока:", player.health - self.damage)
                 player.health -= 0
-                # self.kill()
         # Проверка на попадание по enemy
         for enemy in enemy_group:
             if pygame.sprite.spritecollide(enemy, bullet_group, False):
@@ -704,6 +709,12 @@ while run:
         draw_bg()
         # Рисуем мир
         world.draw()
+        # Обновляем и рисуем группы(...group)
+        water_group.update()
+        water_group.draw(screen)
+
+        decoration_group.update()
+        decoration_group.draw(screen)
         # Рисуем здоровье игрока
         health_bar.draw(player.health)
         # Рисуем запас патронов игрока
@@ -714,29 +725,17 @@ while run:
         draw_text('GRENADES: ', font, WHITE, 10, 60)
         for x in range(player.grenades):
             screen.blit(grenade_img, (135 + (x * 15), 60))
-
-        # Обновляем и рисуем группы(...group)
-        water_group.update()
-        water_group.draw(screen)
-
-        decoration_group.update()
-        decoration_group.draw(screen)
-
         for enemy in enemy_group:
             enemy.ai()
             enemy.update()
             enemy.draw()
-            if len(enemy_group) == 0:
-                n = 0
-                n += 1
-                print("1 волна")
-                waves(n)
+            if len(enemy_group) <= 10:
+                waves()
                 print(enemy_group)
+                draw_text(f"ВОЛНА{len(enemy_group)}", font, WHITE, SCREEN_WIDTH // 2, 35)
 
-        # print(enemy_group)
         player.update()
         player.draw()
-
 
         explosion_group.update()
         explosion_group.draw(screen)
@@ -764,15 +763,15 @@ while run:
             # Проверка на стрельбу игрока
             if shoot:
                 player.shoot(1, "player")
-                print("кол-во патронов игрока:", player.ammo, "кол-во гранат игока: ", player.grenades)
+                # print("кол-во патронов игрока:", player.ammo, "кол-во гранат игока: ", player.grenades)
             # Проверка на бросок гранаты игрока
             elif grenade and grenade_thrown == False and player.grenades > 0:
-                grenade = Grenade(player.rect.centerx + (0.7 * player.rect.size[0]),\
-							player.rect.centery, 2)
+                grenade = Grenade(player.rect.centerx + (0.7 * player.rect.size[0]), \
+                                  player.rect.centery, 2)
                 grenade_group.add(grenade)
                 # Уменьшение запаса гранат игрока
                 player.grenades -= 1
-                print("кол-во патронов игрока:", player.ammo, "кол-во гранат игока: ", player.grenades)
+                # print("кол-во патронов игрока:", player.ammo, "кол-во гранат игока: ", player.grenades)
                 grenade_thrown = True
 
             if moving_left or moving_right or moving_down or moving_up:
@@ -804,7 +803,12 @@ while run:
         if event.type == pygame.QUIT:
             run = False
         # Нажатие клавиш игрока
-
+        if event.type == pygame.USEREVENT:
+            counter -= 1
+            # функция для создания одиночного врга через каждые 10 секунд
+            if counter == 0:
+                solo()
+                counter = 1
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
                 moving_left = True
