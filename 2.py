@@ -21,7 +21,7 @@ clock = pygame.time.Clock()
 FPS = 100
 
 # Основные переменные
-SCROLL_THRESH = 500
+SCROLL_THRESH = 550
 ROWS = 50
 COLS = 50
 TILE_SIZE = ROWS
@@ -241,11 +241,11 @@ class Soldier(pygame.sprite.Sprite):
 
         if moving_down:
             dy = self.vel_y
-            self.vel_y = +5
+            self.vel_y = +self.speed
 
         if moving_up:
             dy = self.vel_y
-            self.vel_y = -5
+            self.vel_y = -self.speed
 
         # Проверка на препятсвия
         for tile in world.obstacle_list:
@@ -286,7 +286,7 @@ class Soldier(pygame.sprite.Sprite):
 
     def shoot(self, size, char_type):
         if self.shoot_cooldown == 0 and self.ammo > 0:
-            self.shoot_cooldown = 2
+            self.shoot_cooldown = 20
             bullet = Bullet(self.rect.centerx + (0.7 * self.rect.size[0] * self.direction), \
                             self.rect.centery, size, char_type)
             bullet_group.add(bullet)
@@ -295,6 +295,7 @@ class Soldier(pygame.sprite.Sprite):
 
     # функция ьотов
     def ai(self):
+        #передаем им положение игрока и задаем направление. урон если он касается нас
         if self.alive and player.alive:
             dx, dy = self.rect.x - player.rect.x, self.rect.y - player.rect.y
             dist = math.hypot(dx, dy)
@@ -307,6 +308,7 @@ class Soldier(pygame.sprite.Sprite):
             self.rect.y += (dy * self.speed) * 2
             if pygame.sprite.collide_rect(self, player):
                 player.health -= 0.2
+        #если вра умер, спавним ящики
         if self.alive == False:
             ch = random.randint(0, 100)
             if ch == 1:
@@ -392,7 +394,7 @@ class World():
                         decoration = Decoration(img, x * TILE_SIZE, y * TILE_SIZE)
                         decoration_group.add(decoration)
                     elif tile == 15:  # Создаем игрока
-                        player = Soldier('player', x * TILE_SIZE, y * TILE_SIZE, 1.65, 5, 200, 10)
+                        player = Soldier('player', x * TILE_SIZE, y * TILE_SIZE, 1.65, 3, 100, 3)
                         health_bar = HealthBar(10, 10, player.health, player.health)
                     elif tile == 16:  # Создаем enemy
                         # char_type, x, y, scale, speed, ammo, grenades
@@ -472,11 +474,11 @@ class ItemBox(pygame.sprite.Sprite):
         if pygame.sprite.collide_rect(self, player):
             # Проверка, какую коробку
             if self.item_type == 'Health':
-                player.health += 25
+                player.health += 5
                 if player.health > player.max_health:
                     player.health = player.max_health
             elif self.item_type == 'Ammo':
-                player.ammo += 20
+                player.ammo += 10
             elif self.item_type == 'Grenade':
                 player.grenades += 1
             # Удаление коробки
@@ -696,10 +698,9 @@ print(world_data)
 
 world = World()
 player, health_bar = world.process_data(world_data)
-
+# Главный цикл
 run = True
 while run:
-
     clock.tick(FPS)
     if start_game == False:
         # Рисуем меню
@@ -732,6 +733,7 @@ while run:
         draw_text('ГРАНАТЫ: ', font, WHITE, 10, 60)
         for x in range(player.grenades):
             screen.blit(grenade_img, (135 + (x * 15), 60))
+        # создаем волны врагов, не из класса World, контролируем их колво, если мало, спавним еще
         for enemy in enemy_group:
             enemy.ai()
             enemy.update()
@@ -788,6 +790,7 @@ while run:
             bg_scroll[1] -= screen_scroll[1]
 
         else:
+            # если погибли, рестар. возвращаем камеру, вкл завставку, востанавливаеем карту, создаем опять игрока и хп
             screen_scroll = [0, 0]
             if death_fade.fade():
                 if restart_button.draw(screen):
@@ -807,17 +810,20 @@ while run:
         # Выход из игры
         if event.type == pygame.QUIT:
             run = False
-        # Нажатие клавиш игрока
+        # счетчик очков
         if event.type == pygame.USEREVENT + 2:
             counter_life +=1
             if counter_life > 1 and start_game:
                 draw_text(f"СЧЕТ - {counter_life // 1000}", font, WHITE, 10, 85)
+            if start_intro:
+                counter_life = 0
+        # функция для создания одиночного врга через каждые 10 секунд
         if event.type == pygame.USEREVENT:
             counter -= 1
-            # функция для создания одиночного врга через каждые 10 секунд
             if counter == 0:
                 solo()
                 counter = 1
+        # Нажатие клавиш игрока
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
                 moving_left = True
