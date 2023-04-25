@@ -108,7 +108,7 @@ def reset_level():
     for row in range(ROWS):
         r = [-1] * COLS
         data.append(r)
-    print(data)
+    #print(data)
 
     return data
 
@@ -126,14 +126,14 @@ def solo():
             player.rect.y - SCREEN_HEIGHT, player.rect.y + SCREEN_HEIGHT)
 
 
-    print(direct)
+    #print(direct)
 
     enemy = Soldier('enemy', x, y, 1.65, 1, 1, 4)
     enemy_group.add(enemy)
     enemy.ai()
     enemy.update()
     enemy.draw()
-    print("solo")
+    #print("solo")
 
 
 def waves():
@@ -694,7 +694,7 @@ with open(f'level{level}_data.csv', newline='') as csvfile:
     for x, row in enumerate(reader):
         for y, tile in enumerate(row):
             world_data[x][y] = int(tile)
-print(world_data)
+#print(world_data)
 
 world = World()
 player, health_bar = world.process_data(world_data)
